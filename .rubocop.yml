@@ -69,8 +69,8 @@ Style/FrozenStringLiteralComment:
 Style/ClassAndModuleChildren:
   Enabled: false
 
-# generic error habdling
-Lint/RescueWithoutErrorClass:
+# generic error handling
+Style/RescueStandardError:
   Enabled: false
 
 Rails/TimeZone:
