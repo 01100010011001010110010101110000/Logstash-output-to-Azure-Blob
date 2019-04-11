@@ -8,7 +8,7 @@ module LogStash
         # initialize the class and validate the time file
         def initialize(time_file)
           if time_file <= 0
-            raise LogStash::ConfigurationError.new('`time_file` need to be greather than 0')
+            raise LogStash::ConfigurationError.new('`time_file` need to be greater than 0')
           end
 
           @time_file = time_file * 60

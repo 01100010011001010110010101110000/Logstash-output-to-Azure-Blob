@@ -8,7 +8,7 @@ module LogStash
         # initialize the class
         def initialize(size_file)
           if size_file <= 0
-            raise LogStash::ConfigurationError.new('`size_file` need to be greather than 0')
+            raise LogStash::ConfigurationError.new('`size_file` need to be greater than 0')
           end
 
           @size_file = size_file

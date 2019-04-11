@@ -2,7 +2,7 @@ module LogStash
   module Outputs
     class LogstashAzureBlobOutput
       # a sub class of +LogstashAzureBlobOutput+
-      # valdiates the path for the temporary directory
+      # validates the path for the temporary directory
       class PathValidator
         INVALID_CHARACTERS = "\^`><".freeze
         # boolean method to check if a name is valid

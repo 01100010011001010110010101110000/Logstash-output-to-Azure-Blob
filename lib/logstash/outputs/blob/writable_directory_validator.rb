@@ -2,7 +2,7 @@ module LogStash
   module Outputs
     class LogstashAzureBlobOutput
       # a sub class of +LogstashAzureBlobOutput+
-      # validates that the specified tmeporary directory can be accesed with
+      # validates that the specified temporary directory can be accessed with
       # write permission
       class WritableDirectoryValidator
         # Checks if a path is valid

@@ -1,10 +1,10 @@
 require 'logstash/outputs/base'
 require 'logstash/namespace'
-require "azure/storage"
+require 'azure/storage'
 require 'tmpdir'
 require 'json'
 
-# Logstash outout plugin that uploads the logs to Azure blobs.
+# Logstash output plugin that uploads the logs to Azure blobs.
 # The logs are stored on local temporary file which is uploaded as a blob
 # to Azure cloud
 #
@@ -14,10 +14,10 @@ require 'json'
 #   Azure storage account name (required) - found under the access keys tab
 # @!attribute storage_access_key
 #   Azure storage account access key (required) - found under the access keys tab
-# @!attribute contianer_name
-#   Blob container to uplaod blobs to (required)
+# @!attribute container_name
+#   Blob container to upload blobs to (required)
 # @!attribute size_file
-#   File size to use for local tmeporary File
+#   File size to use for local temporary File
 # @!attribute time_file
 #   time to upload the local File
 # @!attribute restore
@@ -29,9 +29,9 @@ require 'json'
 # @!attribute upload queue size
 #   upload que size
 # @!attribute upload workers count
-#   how much workers for uplaod
+#   how much workers for upload
 # @!attribute rotation_strategy_val
-#   what will be considered to do the tmeporary file rotation
+#   what will be considered to do the temporary file rotation
 # @!attribute tags
 #   tags for the files
 # @!attribute encoding
@@ -75,13 +75,13 @@ class LogStash::Outputs::LogstashAzureBlobOutput < LogStash::Outputs::Base
                                                                  max_threads: 2,
                                                                  fallback_policy: :caller_runs)
 
-  # azure contianer
+  # azure container
   config :storage_account_name, validate: :string, required: false
 
   # azure key
   config :storage_access_key, validate: :string, required: false
 
-  # conatainer name
+  # container name
   config :container_name, validate: :string, required: false
 
   # storage_location
@@ -107,10 +107,8 @@ class LogStash::Outputs::LogstashAzureBlobOutput < LogStash::Outputs::Base
   # validates all config parameters
   # initializes the uploader
   def register
-    unless @prefix.empty?
-      unless PathValidator.valid?(prefix)
-        raise LogStash::ConfigurationError.new("Prefix must not contains: #{PathValidator::INVALID_CHARACTERS}")
-      end
+    unless @prefix.empty? && PathValidator.valid?(prefix)
+      raise LogStash::ConfigurationError.new("Prefix must not contains: #{PathValidator::INVALID_CHARACTERS}")
     end
 
     unless WritableDirectoryValidator.valid?(@temporary_directory)
@@ -137,10 +135,10 @@ class LogStash::Outputs::LogstashAzureBlobOutput < LogStash::Outputs::Base
   end
 
   # Receives multiple events and check if there is space in temporary directory
-  # @param events_and_encoded [Object]
+  # @param events [Object]
   def multi_receive(events)
     prefix_written_to = Set.new
-    
+
     events.each do |event|
       prefix_key = normalize_key(event.sprintf(@prefix))
       prefix_written_to << prefix_key
@@ -169,9 +167,7 @@ class LogStash::Outputs::LogstashAzureBlobOutput < LogStash::Outputs::Base
     # If Logstash get interrupted, the `restore_from_crash` (when set to true) method will pickup
     # the content in the temporary directly and upload it.
     # This will block the shutdown until all upload are done or the use force quit.
-    @file_repository.each_files do |file|
-      upload_file(file)
-    end
+    @file_repository.each_files(&:upload_file)
 
     @file_repository.shutdown
 
@@ -202,15 +198,18 @@ class LogStash::Outputs::LogstashAzureBlobOutput < LogStash::Outputs::Base
     @periodic_check.shutdown
   end
 
-  # login to azure cloud using azure gem and create the contianer if it doesn't exist
+  # login to azure cloud using azure gem and create the container if it doesn't exist
   # @return [Object] the azure_blob_service object, which is the endpoint to azure gem
   def blob_container_resource
-    #Azure.config.storage_account_name = storage_account_name
-    #Azure.config.storage_access_key = storage_access_key
+    # Azure.config.storage_account_name = storage_account_name
+    # Azure.config.storage_access_key = storage_access_key
     user_agent = 'logstash-output-azure'
     user_agent << '/' << Gem.latest_spec_for('logstash-output-azure').version.to_s
-    client = Azure::Storage::Client.create(:storage_account_name => storage_account_name, :storage_access_key => storage_access_key, :storage_blob_host => "https://#{@storage_account_name}.blob.core.windows.net", :user_agent_prefix => user_agent)
-    #azure_blob_service = Azure::Storage::Blob::BlobService.new(client)
+    client = Azure::Storage::Client.create(storage_account_name: storage_account_name,
+                                           storage_access_key: storage_access_key,
+                                           storage_blob_host: "https://#{@storage_account_name}.blob.core.windows.net",
+                                           user_agent_prefix: user_agent)
+    # azure_blob_service = Azure::Storage::Blob::BlobService.new(client)
     azure_blob_service = client.blob_client
     list = azure_blob_service.list_containers
     list.each do |item|
@@ -247,7 +246,7 @@ class LogStash::Outputs::LogstashAzureBlobOutput < LogStash::Outputs::Base
   # uploads the file using the +Uploader+
   def upload_file(temp_file)
     @logger.debug('Queue for upload', path: temp_file.path)
-    
+
     # defaulting upload options
     upload_options = {}
     # if the queue is full the calling thread will be used to upload

@@ -42,7 +42,7 @@ module LogStash
               # prepending the storage location if we have one - and adding a datestamp for better analytics precision
               filename = @storage_location + '/' + Time.now.strftime('%Y-%m-%d') +'/' + filename
             end
-            puts filename
+            @logger.info(filename)
 
             block_size = 33554432
             blocks = []
@@ -51,7 +51,7 @@ module LogStash
 
                 block_id = Base64.strict_encode64((0...8).map { ('a'..'z').to_a[rand(26)] }.join)
                 blob_account.put_blob_block(container_name, filename, block_id, file_bytes)
-        
+
                 blocks << [block_id]
               end
             end
@@ -59,11 +59,15 @@ module LogStash
             blob = blob_account.commit_blob_blocks(container_name, filename, blocks)
 
             list_blocks = blob_account.list_blob_blocks(container_name, filename)
-            list_blocks[:committed].each { |block| puts "Committed Block #{block.name}" }
+            list_blocks[:committed].each { |block| @logger.info("Committed Block #{block.name}") }
 
           rescue Errno::ENOENT => e
             # the file has gone missing - let's not fill up the drive with errors
-            logger.error('Uploading failed - giving up on the missing file', exception: e.class, message: e.message, path: file.path, backtrace: e.backtrace)
+            logger.error('Uploading failed - giving up on the missing file',
+                         exception: e.class,
+                         message: e.message,
+                         path: file.path,
+                         backtrace: e.backtrace)
 
           rescue => e
             # When we get here it usually mean that LogstashAzureBlobOutput tried to do some retry by himself (default is 3)

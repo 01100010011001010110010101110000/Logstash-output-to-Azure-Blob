@@ -1,4 +1,3 @@
-
 require 'java'
 require 'concurrent'
 require 'concurrent/timer_task'
@@ -122,7 +121,7 @@ module LogStash
           @stale_sweeper = Concurrent::TimerTask.new(execution_interval: @sweeper_interval) do
             LogStash::Util.set_thread_name('LogstashAzureBlobOutput, Stale factory sweeper')
 
-            @prefixed_factories.forEach { |k, v| remove_stale(k, v) }
+            @prefixed_factories.forEach(&:remove_stale)
           end
 
           @stale_sweeper.execute
